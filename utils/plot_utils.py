@@ -74,7 +74,9 @@ def plot_tsp_heatmap(p, x_coord, W_val, W_pred, title="default"):
                     pairs.append((r, c))
                     edge_preds.append(W[r][c])
         return pairs, edge_preds
-        
+    
+    print(f"W_pred.size()={W_pred.size()}")
+    print(f"W_pred={W_pred}")
     G = nx.from_numpy_matrix(W_val)
     pos = dict(zip(range(len(x_coord)), x_coord.tolist()))
     node_pairs, edge_color = _edges_to_node_pairs(W_pred)

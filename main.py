@@ -121,21 +121,62 @@ def pathPoints(path, coordinates):
     return points
 
 
-def solve(solver: GNNSolver, checkbox_vars, canvas, coordinates):
+def solve(solver: GNNSolver, checkbox_vars, canvas, coordinates, plot_heatmap=False):
     selected_node_ids = [id for id, node in enumerate(checkbox_vars) if node.get() == 1]
 
     if len(selected_node_ids) <= 1:
         print("Please select more than 1 node")
         return
 
-    optimal_route = solver.solve(selected_node_ids)
+    optimal_route, heatmap = solver.solve(selected_node_ids)
+    heatmap = heatmap[0]
     print(f"optimal_route={optimal_route}")
-    # TODO: Plot route
-    timer = Timer(optimal_route, canvas, coordinates)
-    timer.run()
+
+    if plot_heatmap:
+        for r in range(len(heatmap)):
+            for c in range(len(heatmap)):
+                x0 = coordinates[optimal_route[r]][0]
+                y0 = coordinates[optimal_route[r]][1]
+                x1 = coordinates[optimal_route[c]][0]
+                y1 = coordinates[optimal_route[c]][1]
+                width = round(10*float(heatmap[r][c]))
+                #canvas.create_line(x0, y0, x1, y1, width=width, fill=color, tags="heatmap")
+                canvas.create_line(x0, y0, x1, y1, width=width, tags="heatmap")
+                
+    else:
+        coords = []
+        for i in range(len(optimal_route)-1):
+            x0 = coordinates[optimal_route[i]][0]
+            y0 = coordinates[optimal_route[i]][1]
+            x1 = coordinates[optimal_route[i+1]][0]
+            y1 = coordinates[optimal_route[i+1]][1]
+            coords.extend([x0, y0, x1, y1])
+     
+        canvas.create_line(coords, width=5, fill="red", tags="line")
 
 
-def reset(checkboxes):
+def blend(color, alpha, base=[255,255,255]):
+    '''
+    color should be a 3-element iterable,  elements in [0,255]
+    alpha should be a float in [0,1]
+    base should be a 3-element iterable, elements in [0,255] (defaults to white)
+    '''
+    out = [int(round((alpha * color[i]) + ((1 - alpha) * base[i]))) for i in range(3)]
+
+    return out
+
+
+def to_hex(color):
+    return "#" + ''.join(["%02x" % e for e in color])
+
+
+def reset(checkboxes, canvas):
+    for idx in canvas.find_withtag("line"):
+        canvas.delete(idx)
+
+    for idx in canvas.find_withtag("heatmap"):
+        canvas.delete(idx)
+
     for i in range(len(checkboxes)):
         checkboxes[i].deselect()
 
@@ -145,6 +186,16 @@ def print_selected_nodes(checkbox_vars, coordinates):
 
     for idx in selected_node_ids:
         print(f"Node {idx}: x={coordinates[idx][0]}, y={coordinates[idx][1]}")
+
+
+def select_all(checkboxes):
+    for checkbox in checkboxes:
+        checkbox.select()
+
+
+def toggle_all(checkboxes):
+    for checkbox in checkboxes:
+        checkbox.toggle()
 
 
 def main():
@@ -177,12 +228,16 @@ def main():
         checkboxes[-1].place(x=x, y=y)
 
     # Define buttons
-    button_reset = Button(bottomframe, text="Reset", command=lambda: reset(checkboxes))
+    button_reset = Button(bottomframe, text="Clear all", command=lambda: reset(checkboxes, canvas))
     button_reset.grid(row=1, column=1, pady=5)
-    button_reset = Button(bottomframe, text="Print selected nodes", command=lambda: print_selected_nodes(checkbox_vars, graph.coordinates))
+    button_reset = Button(bottomframe, text="Select all", command=lambda: select_all(checkboxes))
     button_reset.grid(row=1, column=2, pady=5)
-    button_solve = Button(bottomframe, text="Find optimal route", command=lambda: solve(solver, checkbox_vars, canvas, graph.unf_coordinates))
-    button_solve.grid(row=1, column=3, pady=5)
+    button_reset = Button(bottomframe, text="Toggle all", command=lambda: toggle_all(checkboxes))
+    button_reset.grid(row=1, column=3, pady=5)
+    button_reset = Button(bottomframe, text="View heat-map", command=lambda: solve(solver, checkbox_vars, canvas, graph.unf_coordinates, True))
+    button_reset.grid(row=1, column=4, pady=5)
+    button_solve = Button(bottomframe, text="View optimal tour", command=lambda: solve(solver, checkbox_vars, canvas, graph.unf_coordinates, False))
+    button_solve.grid(row=1, column=5, pady=5)
 
     # Execute program
     root.mainloop()

@@ -1,8 +1,7 @@
 import os
 import json
 import argparse
-import time
-
+import time 
 import numpy as np
 
 import torch
@@ -79,11 +78,6 @@ class GNNSolver(object):
         nodes = np.expand_dims(nodes, axis=0)
         nodes_coord = np.expand_dims(nodes_coord, axis=0)
 
-        print(edges.shape)
-        print(edges_values.shape)
-        print(nodes.shape)
-        print(nodes_coord.shape)
-
         batch_size = 1
         num_nodes = len(selected_node_ids)
         num_neighbors = -1  # self.config.num_neighbors
@@ -106,6 +100,10 @@ class GNNSolver(object):
             # Forward pass
             y_preds = self.net.forward(x_edges, x_edges_values, x_nodes, x_nodes_coord)  # , y_edges, edge_cw)
 
+            # Get heatmap to plot
+            y = F.softmax(y_preds, dim=3)  # B x V x V x voc_edges
+            y_probs = y[:,:,:,1]  # Prediction probabilities: B x V x V
+
             # Get batch beamsearch tour prediction
             bs_nodes = beamsearch_tour_nodes_shortest(
                 y_preds, x_edges_values, beam_size, batch_size, num_nodes, dtypeFloat, dtypeLong, probs_type='logits')
@@ -125,4 +123,4 @@ class GNNSolver(object):
                 route.append(selected_node_ids[idx])
             route.append(route[0])
 
-            return route
+            return route, y_probs

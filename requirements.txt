@@ -1,4 +1,4 @@
-pytorch=0.4.1
+pytorch==0.4.1
 cuda90
 tensorboard==1.12.0
 numpy==1.15.4
